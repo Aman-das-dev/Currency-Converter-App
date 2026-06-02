@@ -41,7 +41,8 @@ export default function App() {
 
   // Listen to live database auth changes
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data }) => {
+      const session = data?.session;
       if (session) {
         setIsLoggedIn(true);
         setUserEmail(session.user?.email || '');
@@ -49,7 +50,7 @@ export default function App() {
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const authListener = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         setIsLoggedIn(true);
         setUserEmail(session.user?.email || '');
@@ -60,6 +61,7 @@ export default function App() {
         localStorage.removeItem('xchange_loggedin');
       }
     });
+    const subscription = authListener?.data?.subscription;
 
     return () => {
       subscription?.unsubscribe();
