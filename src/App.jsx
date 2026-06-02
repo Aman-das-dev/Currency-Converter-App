@@ -31,6 +31,7 @@ export default function App() {
   });
   const [userEmail, setUserEmail] = useState('');
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   const [isLandingActive, setIsLandingActive] = useState(() => {
     const loggedIn = localStorage.getItem('xchange_loggedin') === 'true';
@@ -357,25 +358,74 @@ export default function App() {
         setDarkMode={setDarkMode}
         onStartVoice={handleStartVoice}
         onOpenProfile={() => setActiveWorkspace('profile')}
+        onLogout={handleLogout}
         isAdmin={isAdmin}
         onOpenAdmin={() => setIsAdminPanelOpen(true)}
+        mobileNavOpen={isMobileNavOpen}
+        onToggleMobileNav={() => setIsMobileNavOpen(open => !open)}
       />
 
-      {/* Mobile Horizontal Sliding navigation bar */}
-      <div className="md:hidden flex bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border-b border-slate-200/50 dark:border-slate-800/50 overflow-x-auto scrollbar-none whitespace-nowrap py-3 px-4 gap-2">
-        {sidebarItems.map(item => (
-          <button
-            key={item.id}
-            onClick={() => setActiveWorkspace(item.id)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
-              activeWorkspace === item.id
-                ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-md'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-655 dark:text-slate-400 hover:bg-slate-200'
-            }`}
-          >
-            {item.icon} {item.label}
-          </button>
-        ))}
+      {/* Mobile Drawer Navigation */}
+      <div
+        className={`md:hidden fixed inset-x-0 top-16 bottom-0 z-30 transition-all duration-300 ${
+          isMobileNavOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        aria-hidden={!isMobileNavOpen}
+      >
+        <button
+          type="button"
+          aria-label="Close mobile navigation"
+          onClick={() => setIsMobileNavOpen(false)}
+          className={`absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-300 ${
+            isMobileNavOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+        <aside
+          className={`relative ml-auto h-full w-[88vw] max-w-sm border-l border-slate-200/50 dark:border-slate-800/50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md shadow-2xl p-4 flex flex-col gap-3 transition-transform duration-300 ${
+            isMobileNavOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="px-2 py-1.5">
+            <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 dark:text-slate-500">
+              Wealth Hub Modules
+            </span>
+          </div>
+
+          <div className="flex-1 flex flex-col gap-2 overflow-y-auto">
+            {sidebarItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setActiveWorkspace(item.id);
+                  setIsMobileNavOpen(false);
+                }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all ${
+                  activeWorkspace === item.id
+                    ? 'bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 dark:from-emerald-500/15 dark:to-cyan-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                <div className={`p-1.5 rounded-lg ${activeWorkspace === item.id ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-500' : 'text-slate-450 dark:text-slate-500'}`}>
+                  {item.icon}
+                </div>
+                <span>{item.label}</span>
+              </button>
+            ))}
+
+            <button
+              onClick={() => {
+                handleLogout();
+                setIsMobileNavOpen(false);
+              }}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 transition-all mt-2 border border-transparent hover:border-rose-500/25"
+            >
+              <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-500">
+                <LogOut className="w-4 h-4" />
+              </div>
+              <span>Sign Out Session</span>
+            </button>
+          </div>
+        </aside>
       </div>
 
       {/* Main Structural Columns with perfect Gaps */}

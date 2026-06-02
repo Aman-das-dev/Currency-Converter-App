@@ -1,10 +1,24 @@
 import React from 'react';
-import { Sun, Moon, Mic, LayoutDashboard } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Sun, Moon, Mic, LayoutDashboard, Menu, X, LogOut, UserCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function Navbar({ darkMode, setDarkMode, onStartVoice, onOpenProfile, isAdmin, onOpenAdmin }) {
+export default function Navbar({ darkMode, setDarkMode, onStartVoice, onOpenProfile, onLogout, isAdmin, onOpenAdmin, mobileNavOpen, onToggleMobileNav }) {
   const profileName = localStorage.getItem('xchange_profile_name') || 'Aman Das';
   const initials = profileName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-200/50 dark:border-slate-800/50 backdrop-blur-md">
@@ -101,6 +115,15 @@ export default function Navbar({ darkMode, setDarkMode, onStartVoice, onOpenProf
         </div>
 
         <div className="flex items-center gap-4">
+          <button
+            onClick={onToggleMobileNav}
+            className="md:hidden p-2.5 rounded-xl bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-700/80 transition-all duration-300 cursor-pointer"
+            aria-label={mobileNavOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={mobileNavOpen}
+          >
+            {mobileNavOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </button>
+
           {/* Clickable Voice Button Assistant */}
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -136,18 +159,57 @@ export default function Navbar({ darkMode, setDarkMode, onStartVoice, onOpenProf
           </button>
 
           {/* User Profile Avatar Trigger */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onOpenProfile}
-            className="flex items-center gap-2 bg-slate-100/50 dark:bg-slate-850/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl p-1 pr-3 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer hover:border-cyan-500/50 transition-all duration-300"
-            title="User Profile Settings"
-          >
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-500 to-emerald-500 flex items-center justify-center text-white font-black shadow-sm">
-              {initials}
-            </div>
-            <span className="hidden sm:inline">{profileName}</span>
-          </motion.button>
+          <div ref={profileMenuRef} className="relative">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                setProfileMenuOpen(open => !open);
+                if (mobileNavOpen) {
+                  onToggleMobileNav();
+                }
+              }}
+              className="flex items-center gap-2 bg-slate-100/50 dark:bg-slate-850/50 border border-slate-200/50 dark:border-slate-700/50 rounded-xl p-1 pr-3 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer hover:border-cyan-500/50 transition-all duration-300"
+              title="User Profile Settings"
+              aria-haspopup="menu"
+              aria-expanded={profileMenuOpen}
+            >
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-500 to-emerald-500 flex items-center justify-center text-white font-black shadow-sm">
+                {initials}
+              </div>
+              <span className="hidden sm:inline">{profileName}</span>
+            </motion.button>
+
+            {profileMenuOpen && (
+              <div
+                className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-52 rounded-2xl border border-slate-200/60 dark:border-slate-800/70 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md shadow-2xl overflow-hidden"
+                role="menu"
+              >
+                <button
+                  onClick={() => {
+                    setProfileMenuOpen(false);
+                    onOpenProfile();
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-colors"
+                  role="menuitem"
+                >
+                  <UserCircle2 className="w-4 h-4 text-cyan-500" />
+                  <span>Profile Settings</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setProfileMenuOpen(false);
+                    onLogout?.();
+                  }}
+                  className="w-full px-4 py-3 flex items-center gap-3 text-left text-xs font-bold text-rose-500 hover:bg-rose-500/10 transition-colors border-t border-slate-200/50 dark:border-slate-800/70"
+                  role="menuitem"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Log Out</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
