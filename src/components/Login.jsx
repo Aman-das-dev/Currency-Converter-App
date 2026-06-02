@@ -237,6 +237,26 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
   };
   const strength = getPasswordStrength();
 
+  const getAuthErrorMessage = (authError) => {
+    const errorCode = authError?.code || authError?.name;
+    const message = authError?.message || '';
+    const normalizedMessage = message.toLowerCase();
+
+    if (errorCode === 'invalid_credentials' || normalizedMessage.includes('invalid login credentials')) {
+      return 'Invalid email or password. If this is a new account, use Sign Up first.';
+    }
+
+    if (errorCode === 'email_not_confirmed' || normalizedMessage.includes('email not confirmed')) {
+      return 'Please confirm your email from the Supabase verification email before logging in.';
+    }
+
+    if (normalizedMessage.includes('email provider is disabled')) {
+      return 'Email/password login is disabled in Supabase. Enable it in Authentication > Providers > Email.';
+    }
+
+    return message || 'Authentication failed. Please try again.';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -288,12 +308,12 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
         });
 
         if (authError) {
-          setError(authError.message);
+          setError(getAuthErrorMessage(authError));
           setLoading(false);
         } else {
           setSuccessMsg('🎉 Login successful! Redirecting to your dashboard...');
           setTimeout(() => {
-            onLogin();
+            onLogin(data?.user?.email || email.trim());
           }, 1000);
         }
       } else if (mode === 'signup') {
@@ -309,10 +329,16 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
         });
 
         if (signUpError) {
-          setError(signUpError.message);
+          setError(getAuthErrorMessage(signUpError));
           setLoading(false);
+        } else if (data?.session) {
+          setSuccessMsg('🎉 Account created! Redirecting to your dashboard...');
+          setTimeout(() => {
+            onLogin(data?.user?.email || email.trim());
+          }, 1000);
         } else {
           setSuccessMsg('✉️ Registration successful! Verification email sent. Please check your inbox.');
+          setMode('login');
           setLoading(false);
         }
       } else if (mode === 'otp') {
@@ -324,7 +350,7 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
         });
 
         if (otpError) {
-          setError(otpError.message);
+          setError(getAuthErrorMessage(otpError));
           setLoading(false);
         } else {
           setSuccessMsg('✉️ Magic Link sent! Click the entry link in your email to log in instantly.');
