@@ -47,6 +47,21 @@ Powered by **React.js**, **Framer Motion**, and **Supabase Database & Auth**, Fi
 
 ---
 
+## 🔐 Supabase Setup for Vite
+
+This app uses Vite, so Supabase env vars must use the `VITE_` prefix.
+
+Create a local `.env` file or update Vercel environment variables with:
+
+```env
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+The repository also includes a matching [`\.env.example`](./.env.example) you can copy from.
+
+---
+
 ## 🚀 Getting Started
 
 ### 📋 Prerequisites

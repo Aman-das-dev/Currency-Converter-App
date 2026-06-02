@@ -120,10 +120,6 @@ const createDisabledClient = () =>
     }
   );
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(missingEnvError.message);
-}
-
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
