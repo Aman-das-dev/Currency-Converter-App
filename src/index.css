@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    min-height: 100%;
+  }
+
+  body {
+    @apply transition-colors duration-300 antialiased;
+    font-family: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+    min-height: 100%;
+    -webkit-overflow-scrolling: touch; /* iOS smoothness */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  button, input, select, textarea, a {
+    @apply transition-all duration-300 ease-out;
+  }
+}
+
+@layer utilities {
+  /* Glassmorphism custom styling utilities */
+  .glass-panel {
+    @apply bg-white/70 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 shadow-xl dark:shadow-2xl dark:shadow-black/20;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
+
+  .glass-card {
+    @apply bg-white/40 dark:bg-slate-800/40 backdrop-blur-sm border border-slate-200/30 dark:border-slate-700/30 shadow-md;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
+
+  .glass-input {
+    @apply bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 focus:border-emerald-500 focus:dark:border-emerald-400 focus:ring-1 focus:ring-emerald-500 rounded-xl px-4 py-3 transition-all duration-300 outline-none;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
+}
+
+/* Complete removal of scrollbar tracks/lines */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Gaining / Losing animations */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
