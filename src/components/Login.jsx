@@ -317,28 +317,24 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
           }, 1000);
         }
       } else if (mode === 'signup') {
-        const { data, error: signUpError } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signInWithOtp({
           email: email.trim(),
-          password: password,
           options: {
+            shouldCreateUser: true,
+            emailRedirectTo: window.location.origin,
             data: {
               full_name: fullName.trim(),
               country: country,
-            }
+            },
           }
         });
 
         if (signUpError) {
           setError(getAuthErrorMessage(signUpError));
           setLoading(false);
-        } else if (data?.session) {
-          setSuccessMsg('🎉 Account created! Redirecting to your dashboard...');
-          setTimeout(() => {
-            onLogin(data?.user?.email || email.trim());
-          }, 1000);
         } else {
-          setSuccessMsg('✉️ Registration successful! Verification email sent. Please check your inbox.');
-          setMode('login');
+          setSuccessMsg('✉️ Magic sign-up link sent. Open the email and click the link to finish signing in.');
+          setMode('otp');
           setLoading(false);
         }
       } else if (mode === 'otp') {
