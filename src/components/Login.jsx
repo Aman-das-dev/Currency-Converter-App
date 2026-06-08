@@ -242,7 +242,14 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
     const message = authError?.message || '';
     const normalizedMessage = message.toLowerCase();
 
-    if (errorCode === 'invalid_credentials' || normalizedMessage.includes('invalid login credentials')) {
+    if (errorCode === 'invalid_credentials' || 
+        errorCode === 'invalid_grant' || 
+        normalizedMessage.includes('invalid login credentials') || 
+        normalizedMessage.includes('invalid credentials') || 
+        normalizedMessage.includes('invalid_grant') || 
+        normalizedMessage.includes('invalid password') || 
+        normalizedMessage.includes('user not found') ||
+        normalizedMessage.includes('no user')) {
       return 'Invalid email or password. If this is a new account, use Sign Up first.';
     }
 
