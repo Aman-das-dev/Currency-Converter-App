@@ -91,8 +91,11 @@ app.post('/api/gemini/advice', async (req, res) => {
 });
 
 // 5. Spin up server
-const PORT = process.env.PORT || 5000;
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Node backend active on port ${PORT} [NODE_ENV=${process.env.NODE_ENV || 'development'}]`);
+  });
+}
 
-app.listen(PORT, () => {
-  console.log(`🚀 Node backend active on port ${PORT} [NODE_ENV=${process.env.NODE_ENV || 'development'}]`);
-});
+module.exports = app;

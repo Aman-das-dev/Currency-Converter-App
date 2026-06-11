@@ -324,10 +324,10 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
           }, 1000);
         }
       } else if (mode === 'signup') {
-        const { error: signUpError } = await supabase.auth.signInWithOtp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
+          password: password,
           options: {
-            shouldCreateUser: true,
             emailRedirectTo: window.location.origin,
             data: {
               full_name: fullName.trim(),
@@ -340,9 +340,15 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
           setError(getAuthErrorMessage(signUpError));
           setLoading(false);
         } else {
-          setSuccessMsg('✉️ Magic sign-up link sent. Open the email and click the link to finish signing in.');
-          setMode('otp');
-          setLoading(false);
+          if (data?.session) {
+            setSuccessMsg('🎉 Registration successful! Redirecting to your dashboard...');
+            setTimeout(() => {
+              onLogin(data?.user?.email || email.trim());
+            }, 1000);
+          } else {
+            setSuccessMsg('✉️ Verification email sent! Open the email and click the link to confirm your account and sign in.');
+            setLoading(false);
+          }
         }
       } else if (mode === 'otp') {
         const { error: otpError } = await supabase.auth.signInWithOtp({
