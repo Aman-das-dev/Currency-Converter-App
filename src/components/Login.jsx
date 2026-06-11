@@ -346,6 +346,23 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
               onLogin(data?.user?.email || email.trim());
             }, 1000);
           } else {
+            // Try automatic login in case email confirmation is turned off in Supabase
+            try {
+              const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+                email: email.trim(),
+                password: password,
+              });
+              if (!signInErr && signInData?.session) {
+                setSuccessMsg('🎉 Registration successful! Redirecting to your dashboard...');
+                setTimeout(() => {
+                  onLogin(signInData?.user?.email || email.trim());
+                }, 1000);
+                return;
+              }
+            } catch (e) {
+              console.log("Auto-login failed:", e);
+            }
+
             setSuccessMsg('✉️ Verification email sent! Open the email and click the link to confirm your account and sign in.');
             setLoading(false);
           }
