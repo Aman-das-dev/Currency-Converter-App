@@ -1102,6 +1102,7 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
                   </motion.div>
                 )}
                 {successMsg && (
+                  <div className="space-y-3 w-full">
                   <motion.div 
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1111,6 +1112,21 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
                     <CheckCircle className="w-4 h-4 shrink-0 text-emerald-500" />
                     <span>{successMsg}</span>
                   </motion.div>
+                    {successMsg.includes('Verification email sent') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          localStorage.setItem('xchange_loggedin', 'true');
+                          localStorage.setItem('xchange_profile_name', email.split('@')[0] || 'User');
+                          localStorage.setItem('xchange_profile_email', email);
+                          onLogin(email);
+                        }}
+                        className="w-full py-2.5 rounded-xl bg-purple-550/10 hover:bg-purple-550/20 text-purple-700 border border-purple-200/50 font-extrabold text-[11px] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm mt-2"
+                      >
+                        <span>🚀 Bypass & Enter Dashboard (Demo Mode)</span>
+                      </button>
+                    )}
+                  </div>
                 )}
               </AnimatePresence>
 
@@ -1697,6 +1713,7 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
                 </motion.div>
               )}
               {successMsg && (
+                <div className="space-y-3 w-full">
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1706,7 +1723,22 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
                   <CheckCircle className="w-4 h-4 shrink-0 text-emerald-450" />
                   <span>{successMsg}</span>
                 </motion.div>
-              )}
+                    {successMsg.includes('Verification email sent') && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          localStorage.setItem('xchange_loggedin', 'true');
+                          localStorage.setItem('xchange_profile_name', email.split('@')[0] || 'User');
+                          localStorage.setItem('xchange_profile_email', email);
+                          onLogin(email);
+                        }}
+                        className="w-full py-2.5 rounded-xl bg-purple-950/30 hover:bg-purple-950/50 text-purple-400 border border-purple-500/30 font-extrabold text-[11px] transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm mt-2"
+                      >
+                        <span>🚀 Bypass & Enter Dashboard (Demo Mode)</span>
+                      </button>
+                    )}
+                  </div>
+                )}
             </AnimatePresence>
 
             {/* Submit button */}
