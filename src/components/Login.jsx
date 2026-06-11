@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   DollarSign, ShieldAlert, Key, ArrowRight, Mail, UserPlus, Unlock, CheckCircle, 
   Sun, Moon, Eye, EyeOff, ShieldCheck, TrendingUp, Bot, Zap, Bell, Globe, Star, Check, User, ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../services/supabase';
+import { fetchRates } from '../services/rateApi';
 
 // Comprehensive list of all world countries with flag emojis
 const WORLD_COUNTRIES = [
@@ -203,6 +204,21 @@ const WORLD_COUNTRIES = [
 
 export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, initialMode = 'login' }) {
   const [mode, setMode] = useState(initialMode); // 'login', 'signup', 'otp'
+  const [liveInrRate, setLiveInrRate] = useState(83.45);
+
+  useEffect(() => {
+    const getLiveInr = async () => {
+      try {
+        const data = await fetchRates('USD');
+        if (data && data.rates && data.rates.INR) {
+          setLiveInrRate(data.rates.INR);
+        }
+      } catch (e) {
+        console.log("Error loading live INR rate for login preview:", e);
+      }
+    };
+    getLiveInr();
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -324,10 +340,10 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
           }, 1000);
         }
       } else if (mode === 'signup') {
-        const { error: signUpError } = await supabase.auth.signInWithOtp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
+          password: password,
           options: {
-            shouldCreateUser: true,
             emailRedirectTo: window.location.origin,
             data: {
               full_name: fullName.trim(),
@@ -340,9 +356,32 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
           setError(getAuthErrorMessage(signUpError));
           setLoading(false);
         } else {
-          setSuccessMsg('✉️ Magic sign-up link sent. Open the email and click the link to finish signing in.');
-          setMode('otp');
-          setLoading(false);
+          if (data?.session) {
+            setSuccessMsg('🎉 Registration successful! Redirecting to your dashboard...');
+            setTimeout(() => {
+              onLogin(data?.user?.email || email.trim());
+            }, 1000);
+          } else {
+            // Try automatic login in case email confirmation is turned off in Supabase
+            try {
+              const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+                email: email.trim(),
+                password: password,
+              });
+              if (!signInErr && signInData?.session) {
+                setSuccessMsg('🎉 Registration successful! Redirecting to your dashboard...');
+                setTimeout(() => {
+                  onLogin(signInData?.user?.email || email.trim());
+                }, 1000);
+                return;
+              }
+            } catch (e) {
+              console.log("Auto-login failed:", e);
+            }
+
+            setSuccessMsg('✉️ Verification email sent! Open the email and click the link to confirm your account and sign in.');
+            setLoading(false);
+          }
         }
       } else if (mode === 'otp') {
         const { error: otpError } = await supabase.auth.signInWithOtp({
@@ -570,7 +609,7 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
         <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center bg-white/70 backdrop-blur-lg border border-slate-200/80 rounded-[36px] p-6 sm:p-8 lg:p-9 shadow-2xl relative transform-gpu will-change-transform">
           
           {/* 1. LEFT PANE - BRANDING & ANIMS */}
-          <div className="lg:col-span-6 flex flex-col justify-between h-full space-y-10">
+          <div className="hidden lg:flex lg:col-span-6 flex-col justify-between h-full space-y-10">
             
             {/* Logo brand header */}
             <div className="flex items-center gap-3">
@@ -738,7 +777,7 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
                   </div>
 
                   <div className="flex justify-between items-center text-[8px] border-t border-slate-200 pt-1.5 mt-0.5">
-                    <span className="font-extrabold text-slate-700">1 USD = 83.45</span>
+                    <span className="font-extrabold text-slate-700">1 USD = {liveInrRate.toFixed(2)}</span>
                     <span className="text-emerald-600 flex items-center gap-0.5 font-black text-[8px]">
                       <TrendingUp className="w-2.5 h-2.5" /> +0.5%
                     </span>
@@ -806,7 +845,7 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
           </div>
 
           {/* 2. RIGHT PANE - AUTH FORM */}
-          <div className="lg:col-span-6 bg-white border border-slate-200/80 rounded-[28px] p-6 sm:p-8 lg:p-9 shadow-xl relative">
+          <div className="lg:col-span-6 w-full max-w-md mx-auto lg:max-w-none bg-white border border-slate-200/80 rounded-[28px] p-6 sm:p-8 lg:p-9 shadow-xl relative">
             
             {/* Form Top Utility Bar */}
             <div className="flex items-center justify-between mb-6">
@@ -1165,7 +1204,7 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center bg-slate-950/30 backdrop-blur-lg border border-white/5 rounded-[36px] p-6 sm:p-8 lg:p-9 shadow-2xl relative transform-gpu will-change-transform">
         
         {/* 1. LEFT PANE - BRANDING & ANIMS */}
-        <div className="lg:col-span-6 flex flex-col justify-between h-full space-y-10">
+        <div className="hidden lg:flex lg:col-span-6 flex-col justify-between h-full space-y-10">
           
           {/* Logo brand header */}
           <div className="flex items-center gap-3">
@@ -1333,7 +1372,7 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
                 </div>
 
                 <div className="flex justify-between items-center text-[8px] border-t border-white/5 pt-1.5 mt-0.5">
-                  <span className="font-extrabold text-slate-350">1 USD = 83.45 INR</span>
+                  <span className="font-extrabold text-slate-350">1 USD = {liveInrRate.toFixed(2)} INR</span>
                   <span className="text-emerald-450 flex items-center gap-0.5 font-black">
                     <TrendingUp className="w-2.5 h-2.5" /> +0.5%
                   </span>
@@ -1401,7 +1440,7 @@ export default function Login({ onLogin, onBackToHome, darkMode, setDarkMode, in
         </div>
 
         {/* 2. RIGHT PANE - AUTH FORM */}
-        <div className="lg:col-span-6 bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-[28px] p-6 sm:p-8 lg:p-9 shadow-xl relative">
+        <div className="lg:col-span-6 w-full max-w-md mx-auto lg:max-w-none bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-[28px] p-6 sm:p-8 lg:p-9 shadow-xl relative">
           
           {/* Form Top Utility Bar */}
           <div className="flex items-center justify-between mb-6">

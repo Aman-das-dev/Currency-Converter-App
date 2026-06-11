@@ -5,20 +5,26 @@ const cors = require('cors');
 
 const app = express();
 
-// 1. Enable secure CORS for cookies sharing
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:5173',
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
   'http://localhost:3000'
-];
+].filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
+      // Allow if same-origin (no origin header) or matches allowed list
       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error('Blockaded by CORS Policy'));
+        return callback(null, true);
       }
+      
+      // Dynamically allow all Vercel deployment URLs to prevent CORS blockades in production
+      if (origin.endsWith('.vercel.app') || origin.includes('vercel.app')) {
+        return callback(null, true);
+      }
+      
+      callback(new Error('Blockaded by CORS Policy'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -91,8 +97,11 @@ app.post('/api/gemini/advice', async (req, res) => {
 });
 
 // 5. Spin up server
-const PORT = process.env.PORT || 5000;
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Node backend active on port ${PORT} [NODE_ENV=${process.env.NODE_ENV || 'development'}]`);
+  });
+}
 
-app.listen(PORT, () => {
-  console.log(`🚀 Node backend active on port ${PORT} [NODE_ENV=${process.env.NODE_ENV || 'development'}]`);
-});
+module.exports = app;

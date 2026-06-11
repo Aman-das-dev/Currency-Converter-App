@@ -6,9 +6,25 @@ import {
   Briefcase, HeartHandshake, ShieldAlert, ChevronDown, MessageSquare
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { fetchRates } from '../services/rateApi';
 
 export default function LandingPage({ onLaunch, darkMode, setDarkMode }) {
   const [activeNav, setActiveNav] = useState('Home');
+  const [liveInrRate, setLiveInrRate] = useState(83.425);
+
+  useEffect(() => {
+    const getLiveInr = async () => {
+      try {
+        const data = await fetchRates('USD');
+        if (data && data.rates && data.rates.INR) {
+          setLiveInrRate(data.rates.INR);
+        }
+      } catch (e) {
+        console.log("Error loading live INR rate for landing preview:", e);
+      }
+    };
+    getLiveInr();
+  }, []);
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [flash, setFlash] = useState({});
@@ -93,38 +109,93 @@ export default function LandingPage({ onLaunch, darkMode, setDarkMode }) {
 
   // Minor rate jitter to simulate live ticker updates
   useEffect(() => {
-    const interval = setInterval(() => {
-      const coins = ['btc', 'eth', 'sol', 'xrp'];
-      const targetCoin = coins[Math.floor(Math.random() * coins.length)];
-      const direction = Math.random() > 0.45 ? 'up' : 'down';
-      const jitterFactor = 1 + (direction === 'up' ? 0.0008 : -0.0008);
-
-      setCryptoPrices(prev => {
-        const coinData = prev[targetCoin];
-        const nextUSD = parseFloat((coinData.USD * jitterFactor).toFixed(targetCoin === 'xrp' ? 4 : 2));
-        const nextEUR = parseFloat((coinData.EUR * jitterFactor).toFixed(targetCoin === 'xrp' ? 4 : 2));
-        const nextINR = parseFloat((coinData.INR * jitterFactor).toFixed(2));
-        const nextChange = parseFloat((coinData.change + (direction === 'up' ? 0.05 : -0.05)).toFixed(2));
-
-        return {
-          ...prev,
-          [targetCoin]: {
-            USD: nextUSD,
-            EUR: nextEUR,
-            INR: nextINR,
-            change: nextChange
+    const fetchRealCrypto = async () => {
+      try {
+        const res = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","ETHUSDT","SOLUSDT","XRPUSDT"]');
+        if (!res.ok) throw new Error('Binance fetch failed');
+        const data = await res.json();
+        
+        let usdToEur = 0.92;
+        let usdToInr = 83.45;
+        try {
+          const ratesData = await fetchRates('USD');
+          if (ratesData && ratesData.rates) {
+            usdToEur = ratesData.rates.EUR || 0.92;
+            usdToInr = ratesData.rates.INR || 83.45;
           }
+        } catch (err) {
+          console.warn("Could not load currency rates for crypto conversion, using fallbacks:", err);
+        }
+
+        const symbolMap = {
+          BTCUSDT: 'btc',
+          ETHUSDT: 'eth',
+          SOLUSDT: 'sol',
+          XRPUSDT: 'xrp'
         };
-      });
 
-      // Flashing animation state handler
-      setFlash(prev => ({ ...prev, [targetCoin]: direction }));
-      setTimeout(() => {
-        setFlash(prev => ({ ...prev, [targetCoin]: null }));
-      }, 800);
+        const updatedPrices = {};
+        data.forEach(item => {
+          const coinId = symbolMap[item.symbol];
+          if (coinId) {
+            const usdPrice = parseFloat(item.lastPrice);
+            updatedPrices[coinId] = {
+              USD: usdPrice,
+              EUR: usdPrice * usdToEur,
+              INR: usdPrice * usdToInr,
+              change: parseFloat(parseFloat(item.priceChangePercent).toFixed(2))
+            };
+          }
+        });
 
-    }, 3000);
+        // Trigger flash effect for coins that changed
+        setCryptoPrices(prev => {
+          Object.keys(updatedPrices).forEach(coin => {
+            if (prev[coin] && prev[coin].USD !== updatedPrices[coin].USD) {
+              const direction = updatedPrices[coin].USD > prev[coin].USD ? 'up' : 'down';
+              setFlash(f => ({ ...f, [coin]: direction }));
+              setTimeout(() => {
+                setFlash(f => ({ ...f, [coin]: null }));
+              }, 800);
+            }
+          });
+          return { ...prev, ...updatedPrices };
+        });
 
+      } catch (err) {
+        console.warn('Real-time crypto fetch failed, falling back to simulation:', err);
+        const coins = ['btc', 'eth', 'sol', 'xrp'];
+        const targetCoin = coins[Math.floor(Math.random() * coins.length)];
+        const direction = Math.random() > 0.45 ? 'up' : 'down';
+        const jitterFactor = 1 + (direction === 'up' ? 0.0008 : -0.0008);
+
+        setCryptoPrices(prev => {
+          const coinData = prev[targetCoin];
+          const nextUSD = parseFloat((coinData.USD * jitterFactor).toFixed(targetCoin === 'xrp' ? 4 : 2));
+          const nextEUR = parseFloat((coinData.EUR * jitterFactor).toFixed(targetCoin === 'xrp' ? 4 : 2));
+          const nextINR = parseFloat((coinData.INR * jitterFactor).toFixed(2));
+          const nextChange = parseFloat((coinData.change + (direction === 'up' ? 0.05 : -0.05)).toFixed(2));
+
+          return {
+            ...prev,
+            [targetCoin]: {
+              USD: nextUSD,
+              EUR: nextEUR,
+              INR: nextINR,
+              change: nextChange
+            }
+          };
+        });
+
+        setFlash(prev => ({ ...prev, [targetCoin]: direction }));
+        setTimeout(() => {
+          setFlash(prev => ({ ...prev, [targetCoin]: null }));
+        }, 800);
+      }
+    };
+
+    fetchRealCrypto();
+    const interval = setInterval(fetchRealCrypto, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -389,10 +460,15 @@ export default function LandingPage({ onLaunch, darkMode, setDarkMode }) {
             }`}>
               FinVerse
             </span>
-            <span className={`font-semibold text-[9px] block uppercase tracking-widest font-bold ${
+            <span className={`hidden sm:block font-semibold text-[9px] uppercase tracking-widest font-bold ${
               darkMode ? 'text-purple-400' : 'text-purple-650'
             }`}>
               Currency Converter
+            </span>
+            <span className={`block sm:hidden font-semibold text-[8px] uppercase tracking-widest font-bold ${
+              darkMode ? 'text-purple-400' : 'text-purple-650'
+            }`}>
+              Converter
             </span>
           </div>
         </div>
@@ -434,7 +510,7 @@ export default function LandingPage({ onLaunch, darkMode, setDarkMode }) {
 
           <button
             onClick={() => onLaunch('login')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+            className={`hidden sm:block px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
               darkMode 
                 ? 'text-slate-300 bg-white/[0.02] border-white/5 hover:bg-white/[0.07]' 
                 : 'text-slate-700 bg-white border-slate-200/80 hover:bg-slate-50 shadow-sm'
@@ -445,7 +521,7 @@ export default function LandingPage({ onLaunch, darkMode, setDarkMode }) {
 
           <button
             onClick={() => onLaunch('signup')}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white text-xs font-bold shadow-lg shadow-purple-500/15 hover:shadow-purple-500/25 hover:scale-105 transition-all cursor-pointer"
+            className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-blue-500 text-white text-xs font-bold shadow-lg shadow-purple-500/15 hover:shadow-purple-500/25 hover:scale-105 transition-all cursor-pointer shrink-0"
           >
             Get Started
           </button>
@@ -557,7 +633,7 @@ export default function LandingPage({ onLaunch, darkMode, setDarkMode }) {
                 ¥
               </motion.div>
 
-              <div className={`absolute bottom-4 right-4 z-30 border rounded-2xl p-4 shadow-xl flex flex-col gap-2.5 w-64 ${
+              <div className={`absolute bottom-2 right-2 sm:bottom-4 sm:right-4 z-30 border rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col gap-2 sm:gap-2.5 w-[85%] sm:w-64 ${
                 darkMode ? 'bg-slate-900/90 border-white/10' : 'bg-white/95 border-slate-250 shadow-purple-500/5'
               }`}>
                 <div className="bg-slate-50 dark:bg-slate-950/40 p-2 rounded-xl border border-slate-200/50 dark:border-white/5 flex items-center justify-between">
@@ -573,7 +649,7 @@ export default function LandingPage({ onLaunch, darkMode, setDarkMode }) {
                 <div className="bg-slate-50 dark:bg-slate-950/40 p-2 rounded-xl border border-slate-200/50 dark:border-white/5 flex items-center justify-between">
                   <div>
                     <span className="text-[7px] text-slate-500 block uppercase font-bold">You receive</span>
-                    <span className="text-[10px] font-black">83,425.00</span>
+                    <span className="text-[10px] font-black">{(1000 * liveInrRate).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-700 dark:text-slate-300">
                     <span>🇮🇳 INR</span>
@@ -581,7 +657,7 @@ export default function LandingPage({ onLaunch, darkMode, setDarkMode }) {
                 </div>
 
                 <div className="flex justify-between items-center text-[7px] text-slate-500 font-bold border-t border-slate-100 dark:border-white/5 pt-2">
-                  <span>1 USD = 83.425 INR</span>
+                  <span>1 USD = {liveInrRate.toFixed(3)} INR</span>
                   <span className="text-emerald-600 flex items-center gap-0.5 font-extrabold">
                     <TrendingUp className="w-2.5 h-2.5" /> +0.45%
                   </span>
@@ -649,17 +725,19 @@ export default function LandingPage({ onLaunch, darkMode, setDarkMode }) {
                   <div className={`absolute -top-16 -right-16 w-32 h-32 rounded-full blur-3xl opacity-[0.04] pointer-events-none ${coin.glowClass}`} />
 
                   <div>
-                    <div className="flex items-center justify-between mb-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white shadow-md text-sm ${coin.bgClass}`}>
-                          {coin.icon}
+                    <div className="flex items-center justify-between mb-3.5 gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white shadow-md text-sm shrink-0 ${coin.bgClass}`}>
+                          <span className={coin.id === 'eth' ? 'translate-y-[1.5px] transform block' : 'block'}>
+                            {coin.icon}
+                          </span>
                         </div>
-                        <div>
-                          <h4 className={`text-xs font-black leading-none ${darkMode ? 'text-white' : 'text-slate-800'}`}>{coin.name}</h4>
+                        <div className="min-w-0">
+                          <h4 className={`text-xs font-black leading-none truncate ${darkMode ? 'text-white' : 'text-slate-800'}`}>{coin.name}</h4>
                           <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5 block">{coin.symbol}</span>
                         </div>
                       </div>
-                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border transition-colors ${
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border transition-colors shrink-0 ${
                         changeVal >= 0 
                           ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
                           : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
